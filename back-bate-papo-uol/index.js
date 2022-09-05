@@ -92,4 +92,18 @@ app.post("/messages", (req, res) =>{
     }
 })
 
+app.get("/messages", (req, res) =>{
+    const limit = parseInt(req.query.limit);
+    const user = req.headers.user;
+
+    db.collection("messages").find({from: user}).toArray().then((messages) =>{
+        if(limit){
+            res.send(messages.slice(-limit));
+        }
+        else{
+            res.send(messages)
+        }
+    })
+})
+
 app.listen(5000);
