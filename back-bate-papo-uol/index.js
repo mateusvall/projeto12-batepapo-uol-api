@@ -9,7 +9,7 @@ dotenv.config();
 const app = express();
 app.use(cors())
 app.use(express.json())
-const mongoClient = new MongoClient("mongodb://localhost:27017")
+const mongoClient = new MongoClient(process.env.MONGO_URI)
 let db;
 mongoClient.connect().then(() =>{
     db = mongoClient.db();
@@ -28,10 +28,8 @@ app.post("/participants", (req, res) =>{
     } else{
         db.collection("users").findOne(user).then((useri) => {
             if(useri){
-                console.log("Nome não disponível!");
                 res.sendStatus(409);
             }else{
-                console.log("Nome disponível!");
                 const now = Date.now();
                 db.collection("users").insertOne({
                     name: user.name,
@@ -96,7 +94,7 @@ app.get("/messages", (req, res) =>{
     const limit = parseInt(req.query.limit);
     const user = req.headers.user;
 
-    db.collection("messages").find({from: user}).toArray().then((messages) =>{
+    db.collection("messages").find({$or:[{from: user},{to: "Todos"},{to: user}]}).toArray().then((messages) =>{
         if(limit){
             res.send(messages.slice(-limit));
         }
@@ -112,7 +110,6 @@ app.post("/status", (req, res) =>{
 
     db.collection("users").findOne({name:user}).then((useri) =>{
         if(useri){
-            console.log("Achou!");
             db.collection("users").updateOne({
                 _id: useri._id
             },{$set: {...useri, lastStatus:now}});
@@ -123,5 +120,30 @@ app.post("/status", (req, res) =>{
         }
     })
 })
+
+function findInacative(){
+    let inactives = []
+    const now = Date.now();
+
+    db.collection("users").find().toArray().then((users) =>{
+        inactives = users.filter((document) => ((now/1000) - (document.lastStatus/1000)) > 10);
+        console.log(inactives);
+        for(let index=0;index<inactives.length;index++){
+            db.collection("messages").insertOne({
+                from: inactives[index].name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs(now).format('hh:mm:ss')
+            })
+            db.collection("users").deleteOne({name: inactives[index].name});
+        }
+    });
+}
+
+setInterval(findInacative, 15000)
+
+
+
 
 app.listen(5000);
