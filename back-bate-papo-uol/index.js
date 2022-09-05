@@ -60,4 +60,36 @@ app.get("/participants", (req, res) =>{
     });
 })
 
+app.post("/messages", (req, res) =>{
+    const userSchema = joi.object({
+        to: joi.string().required(),
+        text: joi.string().required(),
+        type: joi.string().valid('private_message','message').required(),
+
+    }); 
+
+    const user = {from: req.headers.user};
+    const message = req.body;
+    const validation = userSchema.validate(message, {abortEarly: true});
+
+    if (validation.error) {
+        console.log(validation.error.details[0].message)
+        res.sendStatus(422);
+    } else{
+        db.collection("messages").findOne(user).then((useri) =>{
+            if(useri){
+                db.collection("messages").insertOne({
+                    ...user,
+                    ...message,
+                    time: dayjs(Date.now()).format('hh:mm:ss')
+                })
+                res.sendStatus(201);
+            }else{
+                res.sendStatus(422);
+            }
+        })
+
+    }
+})
+
 app.listen(5000);
