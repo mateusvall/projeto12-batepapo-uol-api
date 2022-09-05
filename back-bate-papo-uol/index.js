@@ -54,8 +54,10 @@ app.post("/participants", (req, res) =>{
     
 })
 
-app.get("/teste", (req, res) =>{
-    res.send("Hello!")
+app.get("/participants", (req, res) =>{
+    db.collection("users").find().toArray().then(users => {
+        res.send(users)
+    });
 })
 
 app.listen(5000);
