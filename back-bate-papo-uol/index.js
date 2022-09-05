@@ -106,4 +106,22 @@ app.get("/messages", (req, res) =>{
     })
 })
 
+app.post("/status", (req, res) =>{
+    const user = req.headers.user;
+    const now = Date.now();
+
+    db.collection("users").findOne({name:user}).then((useri) =>{
+        if(useri){
+            console.log("Achou!");
+            db.collection("users").updateOne({
+                _id: useri._id
+            },{$set: {...useri, lastStatus:now}});
+            res.sendStatus(200);
+        }
+        else{
+            res.sendStatus(404);
+        }
+    })
+})
+
 app.listen(5000);
